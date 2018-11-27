@@ -6,6 +6,15 @@ var userSchema = new mongoose.Schema({
   username: String,
   name: String,
   state: String,
-  socketId: String
+  socketId: String,
+  userSettings: [{
+  	text: String,
+  	value: String
+  }],
+  days: [],
+  location:{
+    lat: Number,
+    lng: Number
+  }
 });
 module.exports = mongoose.model('users', userSchema);

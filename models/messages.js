@@ -6,9 +6,14 @@ var messageSchema = new mongoose.Schema({
    time: Number, 
    read: String, 
    image: {
-   	sent: Boolean,
-   	url: String
+      sent: Boolean,
+      url: String
    }, 
-   friend: String
+   friend: String,
+   location: String,
+   coords: {
+      lat: Number,
+      lng: Number
+   }
 });
 module.exports = mongoose.model('draft', messageSchema);

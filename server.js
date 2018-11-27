@@ -14,7 +14,6 @@ var JWT_SECRET = process.env.JWT_SECRET || 'change-me-please!';
 process.env.AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || 'your-key-here';
 process.env.AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || 'your-access-key-here';
 // meat
-
 const
   express = require('express'),
   app = express(),
@@ -49,7 +48,8 @@ var  Users = require('./models/users'),
    //deliveredMessages = [],
    //readMessages = [{from:'+254704251068', to:'+254719662122'}];
 // connect to the database
- mongoose.connect('mongodb://127.0.0.1/nearBy');
+ mongoose.connect('mongodb://nearby:nearby@127.0.0.1/nearBy');
+// mongoose.connect('mongodb://127.0.0.1/nearBy');
 
 // basic setup
 app.use(helmet());
@@ -67,7 +67,7 @@ app.post('/imgupload',(req, res)=>{
                 console.log(err);
             if(req.file){
 
-              var url = 'http://192.168.1.101:3000//uploads/';
+              var url = req.body.url+'//uploads/';
                 var pic = url + req.file.filename;
                 var userId = req.body.id;
              if(req.body.messageId == "null"){
@@ -113,7 +113,7 @@ io.on('connection', function(socket){
     
       switch(data.stage){
         case 'updateFriendsInfo':
-         Users.find({_id: {$in: data.users}},{_id:1, pic:1, status: 1, state:1}, function(err, res){
+         Users.find({_id: {$in: data.users}},{_id:1, pic:1, status: 1, state:1, location:1}, function(err, res){
           if(err)
             throw err;
           else{
@@ -149,6 +149,7 @@ io.on('connection', function(socket){
                       newUser._id =phone
                       newUser.status = data.status;
                       newUser.pic = data.img;
+                      newUser.userSettings = data.userSettings;
                       newUser.save(function(err){
                         if(err)
                           throw err;
@@ -181,6 +182,27 @@ io.on('connection', function(socket){
              socketEmit(socket, {stage: 'messagesInserver', read: readMess, delivered: userDeliveredMessages}, null);
              //remove the read and delivered from server*/
          break;
+         case 'updateUserLocation':
+           console.log(data);
+             Users.updateOne({_id: data.socketId}, {$set: {location: data.location}}, function(err, res){
+                if(err)
+                  throw err
+            })
+          break;
+         case 'updateProf':
+         if(data.index == 0);
+                data.location = {};
+                var usr = {
+                  userSettings: data.userSettings,
+                  location: data.location
+                }
+            Users.updateOne({_id: data.socketId}, {$set: usr}, function(err, res){
+                if(err)
+                  throw err
+                else 
+                  socketEmit(socket, data, null);
+            })
+         break;
          case 'messageSent':
            socket.broadcast.emit('serverData', data);
             Users.findOne({_id: data.message.friend, state: 'online'}, {_id:1},function(err, res){
@@ -199,6 +221,8 @@ io.on('connection', function(socket){
                     newDraf.time = messagex.time, 
                     newDraf.read = 'null'; 
                     newDraf.image = messagex.image; 
+                    newDraf.location = messagex.location; 
+                    newDraf.coords = messagex.coords; 
                     newDraf.friend = messagex.friend;       
                     newDraf.save(function(err){
                       if(err)
@@ -223,14 +247,14 @@ io.on('connection', function(socket){
     
 });
 function removeuser(id){
-   Users.updateOne({$or:[{socketId: id},{_id: id}]},{$set: {state: Date.now(), socketId: ''} }, 
+   Users.updateOne({$or:[{socketId: id},{_id: id}]},{$set: {state: Date.now(), socketId: '', location: {lat: '', lng: ''}} }, 
            function(err, res){
             if(err)
               throw err;
             console.log(res);
           })
 }
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 http.listen(port, () => {
   console.log('listening on port', port);
 });
